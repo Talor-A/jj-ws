@@ -1,0 +1,91 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`completionScript bash completion matches snapshot 1`] = `
+"# bash completion for jj-ws
+# install: jj-ws completion bash > /etc/bash_completion.d/jj-ws
+#      or: jj-ws completion bash >> ~/.bashrc
+_jj_ws() {
+  local cur="\${COMP_WORDS[COMP_CWORD]}"
+  if [ "\${COMP_CWORD}" -eq 1 ]; then
+    COMPREPLY=( $(compgen -W "add list rm shell completion --help" -- "\${cur}") )
+  fi
+  return 0
+}
+complete -F _jj_ws jj-ws
+"
+`;
+
+exports[`completionScript zsh completion matches snapshot 1`] = `
+"#compdef jj-ws
+# zsh completion for jj-ws
+# install: jj-ws completion zsh > "\${fpath[1]}/_jj-ws"  (then restart zsh)
+_jj-ws() {
+  _arguments \\
+    '(-h --help)'{-h,--help}'[Show help message]' \\
+    '1:command:(add list rm shell completion)' \\
+    '2:argument:'
+}
+_jj-ws "$@"
+"
+`;
+
+exports[`completionScript fish completion matches snapshot 1`] = `
+"# fish completion for jj-ws
+# install: jj-ws completion fish > ~/.config/fish/completions/jj-ws.fish
+complete -c jj-ws -n __fish_use_subcommand -a add -d 'Create a workspace'
+complete -c jj-ws -n __fish_use_subcommand -a list -d 'List workspaces'
+complete -c jj-ws -n __fish_use_subcommand -a rm -d 'Remove a workspace'
+complete -c jj-ws -n __fish_use_subcommand -a shell -d 'Print shell integration'
+complete -c jj-ws -n __fish_use_subcommand -a completion -d 'Print completion script'
+complete -c jj-ws -s h -l help -d 'Show help message'
+"
+`;
+
+exports[`shellIntegration bash integration matches snapshot 1`] = `
+"# jj-ws shell integration for bash
+# install: eval "$(jj-ws shell bash)"
+# Wraps jj-ws in a function so creating a workspace also cds into it.
+jj-ws() {
+  local out
+  out="$(command jj-ws "$@")" || return $?
+  if [ -n "$out" ] && [ -d "$out" ]; then
+    cd "$out" || return $?
+  elif [ -n "$out" ]; then
+    printf '%s\\n' "$out"
+  fi
+}
+"
+`;
+
+exports[`shellIntegration zsh integration matches snapshot 1`] = `
+"# jj-ws shell integration for zsh
+# install: eval "$(jj-ws shell zsh)"
+# Wraps jj-ws in a function so creating a workspace also cds into it.
+jj-ws() {
+  local out
+  out="$(command jj-ws "$@")" || return $?
+  if [ -n "$out" ] && [ -d "$out" ]; then
+    cd "$out" || return $?
+  elif [ -n "$out" ]; then
+    printf '%s\\n' "$out"
+  fi
+}
+"
+`;
+
+exports[`shellIntegration fish integration matches snapshot 1`] = `
+"# jj-ws shell integration for fish
+# install: jj-ws shell fish | source  (add to ~/.config/fish/config.fish)
+# Wraps jj-ws in a function so creating a workspace also cds into it.
+function jj-ws
+    set -l out (command jj-ws $argv)
+    set -l code $status
+    test $code -eq 0; or return $code
+    if test (count $out) -eq 1; and test -d "$out[1]"
+        cd $out[1]
+    else if test (count $out) -gt 0
+        string join \\n -- $out
+    end
+end
+"
+`;

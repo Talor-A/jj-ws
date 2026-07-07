@@ -1,0 +1,29 @@
+{
+  "name": "jj-ws",
+  "module": "index.ts",
+  "version": "0.1.0",
+  "author": {
+    "name": "Talor Anderson",
+    "email": "public-github@taloranderson.com"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "jj-ws": "dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepublishOnly": "bun run build",
+    "prepack": "bun run build",
+    "typecheck": "tsc --noEmit",
+    "build": "tsdown index.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsdown": "^0.22.2",
+    "typescript": "^5"
+  }
+}

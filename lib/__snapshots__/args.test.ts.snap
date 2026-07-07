@@ -1,0 +1,26 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`parseCli help matches snapshot 1`] = `
+"Usage: jj-ws [command] [args]
+
+Create jj workspaces in a shared worktrees directory and cd into them.
+\`jj-ws\` with no arguments creates a workspace with a generated name;
+\`jj-ws <name>\` is shorthand for \`jj-ws add <name>\`.
+
+Workspaces are created at <worktrees-dir>/<repo>/<name>. <worktrees-dir>
+defaults to ../worktrees next to the main repo; override it with:
+
+  jj config set --user jj-ws.worktrees-dir /path/to/worktrees
+
+Commands:
+  add [name]            Create a workspace and print its path (default command)
+  list                  List workspaces and their directories
+  rm <name>             Forget a workspace and delete its directory
+  shell <shell>         Print shell integration that cds into new workspaces
+                        install: eval "$(jj-ws shell zsh)"
+  completion <shell>    Print shell completion script (bash, zsh, fish)
+
+Options:
+  -h, --help            Show this help message
+"
+`;
