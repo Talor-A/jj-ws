@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { help, parseCli } from "./lib/args";
 import { completionScript } from "./lib/completion";
 import { execToStderr, shellQuote } from "./lib/exec";
-import { pruneGitWorktrees, wireGitWorktree } from "./lib/git";
+import { pruneGitWorktrees, syncGitWorktree, wireGitWorktree } from "./lib/git";
 import { pickName } from "./lib/names";
 import { shellIntegration } from "./lib/shell";
 import {
@@ -124,6 +124,20 @@ export async function removeWorkspace(
   console.error(`removed ${dest}`);
 }
 
+/**
+ * Re-point a workspace's git worktree HEAD at its current jj parent commit,
+ * so git commands (diff, log, status) against it stay accurate as `@` moves.
+ * Silently does nothing outside a git-backed workspace.
+ */
+export async function syncWorkspace(
+  path: string | undefined,
+  cwd: string = process.cwd(),
+): Promise<void> {
+  const dest = path === undefined ? cwd : resolve(cwd, path);
+  const mainRoot = await mainRepoRoot(dest);
+  await syncGitWorktree(mainRoot, dest);
+}
+
 export async function listWorkspaces(
   cwd: string = process.cwd(),
 ): Promise<string> {
@@ -162,6 +176,9 @@ if (import.meta.main) {
         break;
       case "rm":
         await removeWorkspace(args.name);
+        break;
+      case "sync":
+        await syncWorkspace(args.path);
         break;
     }
   } catch (error) {

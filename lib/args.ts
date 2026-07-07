@@ -5,6 +5,7 @@ export type CliArgs =
   | { command: "add"; name: string | undefined }
   | { command: "list" }
   | { command: "rm"; name: string }
+  | { command: "sync"; path: string | undefined }
   | { command: "shell"; shell: Shell }
   | { command: "completion"; shell: Shell }
   | { command: "help" };
@@ -25,6 +26,8 @@ Commands:
   add [name]            Create a workspace and print its path (default command)
   list                  List workspaces and their directories
   rm <name>             Forget a workspace and delete its directory
+  sync [path]           Re-point a workspace's git HEAD at its current jj
+                        parent commit (default path: cwd)
   shell <shell>         Print shell integration that cds into new workspaces
                         install: eval "$(jj-ws shell zsh)"
   completion <shell>    Print shell completion script (${SHELLS.join(", ")})
@@ -34,7 +37,7 @@ Options:
 `;
 }
 
-const COMMANDS = new Set(["add", "list", "rm", "shell", "completion"]);
+const COMMANDS = new Set(["add", "list", "rm", "sync", "shell", "completion"]);
 
 export function parseCli(argv: string[]): CliArgs {
   const { values, positionals } = nodeParseArgs({
@@ -67,6 +70,8 @@ export function parseCli(argv: string[]): CliArgs {
     case "rm":
       if (arg === undefined) throw new Error("usage: jj-ws rm <name>");
       return { command: "rm", name: arg };
+    case "sync":
+      return { command: "sync", path: arg };
     case "shell":
     case "completion": {
       if (arg === undefined || !isShell(arg)) {

@@ -195,6 +195,50 @@ describe("jj-ws", () => {
     );
   });
 
+  test("sync re-points git HEAD after the jj parent commit moves", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+    await commitFile(repo, "hello.txt");
+
+    const added = await jjWs(repo, "add", "pikachu");
+    const dest = added.stdout.toString().trim();
+
+    // advance the workspace's parent commit without touching git's HEAD
+    await commitFile(dest, "world.txt");
+
+    const staleLog = await $`git log --format=%s -1`.cwd(dest).quiet().text();
+    expect(staleLog.trim()).toBe("add hello.txt");
+
+    // sync with no path argument uses cwd
+    const synced = await jjWs(dest, "sync");
+    expect(synced.exitCode).toBe(0);
+
+    const freshLog = await $`git log --format=%s -1`.cwd(dest).quiet().text();
+    expect(freshLog.trim()).toBe("add world.txt");
+  });
+
+  test("sync accepts an explicit path", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+    await commitFile(repo, "hello.txt");
+
+    const added = await jjWs(repo, "add", "pikachu");
+    const dest = added.stdout.toString().trim();
+    await commitFile(dest, "world.txt");
+
+    const synced = await jjWs(repo, "sync", dest);
+    expect(synced.exitCode).toBe(0);
+
+    const log = await $`git log --format=%s -1`.cwd(dest).quiet().text();
+    expect(log.trim()).toBe("add world.txt");
+  });
+
+  test("sync is a no-op in the default workspace", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+    await commitFile(repo, "hello.txt");
+
+    const synced = await jjWs(repo, "sync");
+    expect(synced.exitCode).toBe(0);
+  });
+
   test("git works in workspaces of non-colocated repos too", async () => {
     const { repo } = await setupTempJjRepo("myrepo", { colocate: false });
     await commitFile(repo, "hello.txt");

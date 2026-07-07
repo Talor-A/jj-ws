@@ -16,6 +16,8 @@ Commands:
   add [name]            Create a workspace and print its path (default command)
   list                  List workspaces and their directories
   rm <name>             Forget a workspace and delete its directory
+  sync [path]           Re-point a workspace's git HEAD at its current jj
+                        parent commit (default path: cwd)
   shell <shell>         Print shell integration that cds into new workspaces
                         install: eval "$(jj-ws shell zsh)"
   completion <shell>    Print shell completion script (bash, zsh, fish)

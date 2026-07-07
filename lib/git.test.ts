@@ -3,7 +3,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { findGitDir } from "./git";
+import { findGitDir, syncGitWorktree } from "./git";
 
 const testEnv = {
   ...process.env,
@@ -49,5 +49,22 @@ describe("findGitDir", () => {
     await writeFile(join(dir, ".git"), "gitdir: /elsewhere\n");
 
     expect(await findGitDir(dir)).toBeUndefined();
+  });
+});
+
+describe("syncGitWorktree", () => {
+  test("does nothing when the workspace has a real .git directory", async () => {
+    const repo = join(await makeTempDir(), "repo");
+    await mkdir(join(repo, ".git"), { recursive: true });
+
+    expect(await syncGitWorktree(repo, repo)).toBe(false);
+  });
+
+  test("does nothing when the workspace has no .git at all", async () => {
+    const repo = await makeTempDir();
+    const dest = join(await makeTempDir(), "unwired");
+    await mkdir(dest, { recursive: true });
+
+    expect(await syncGitWorktree(repo, dest)).toBe(false);
   });
 });

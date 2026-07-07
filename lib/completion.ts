@@ -5,7 +5,7 @@ export function isShell(value: string): value is Shell {
   return (SHELLS as readonly string[]).includes(value);
 }
 
-const COMMANDS = ["add", "list", "rm", "shell", "completion"];
+const COMMANDS = ["add", "list", "rm", "sync", "shell", "completion"];
 
 function bashCompletion(): string {
   const words = [...COMMANDS, "--help"].join(" ");
@@ -43,6 +43,7 @@ function fishCompletion(): string {
 complete -c jj-ws -n __fish_use_subcommand -a add -d 'Create a workspace'
 complete -c jj-ws -n __fish_use_subcommand -a list -d 'List workspaces'
 complete -c jj-ws -n __fish_use_subcommand -a rm -d 'Remove a workspace'
+complete -c jj-ws -n __fish_use_subcommand -a sync -d 'Sync git HEAD with the jj parent commit'
 complete -c jj-ws -n __fish_use_subcommand -a shell -d 'Print shell integration'
 complete -c jj-ws -n __fish_use_subcommand -a completion -d 'Print completion script'
 complete -c jj-ws -s h -l help -d 'Show help message'

@@ -18,6 +18,8 @@ If you don't pass a name, it picks one for you (`pikachu`, `eevee`, ...).
 
 Each workspace is also registered as a **git worktree** of the main repo (`jj workspace add` alone doesn't do this), so `git log`, `git blame`, IDEs, and other tools that shell out to git work inside it. The workspace gets its own detached HEAD (at the workspace's parent commit) and its own index, so running git in a workspace never disturbs the main checkout. `jj-ws rm` prunes the worktree registration again.
 
+jj moves a workspace's `@` (and so its parent commit, `@-`) as you work — rebasing, `jj new`, squashing — but git's HEAD file is just a pointer written to disk once; it doesn't follow along. Run `jj-ws sync` in a workspace to re-point its git HEAD at the current `@-`, so `git diff`, `git log`, and friends stop reporting stale results. The shell integration (below) runs this automatically before every prompt, so you normally don't need to call it yourself.
+
 If the new workspace has an `.envrc`, `jj-ws` runs `direnv allow` in it, since direnv treats each directory's allow-list separately and would otherwise block the copy it just checked out.
 
 ## Install
@@ -35,7 +37,7 @@ npm i -g jj-ws
 yarn global add jj-ws
 ```
 
-then add the shell integration so creating a workspace also cds into it (a plain binary can't change your shell's directory):
+then add the shell integration so creating a workspace also cds into it (a plain binary can't change your shell's directory), and so git HEAD stays synced automatically (see above):
 
 ```sh
 # ~/.zshrc or ~/.bashrc
@@ -45,7 +47,7 @@ eval "$(jj-ws shell zsh)"   # or bash
 jj-ws shell fish | source
 ```
 
-without the integration, `jj-ws` prints the new workspace path on stdout, so `cd "$(jj-ws)"` also works.
+without the integration, `jj-ws` prints the new workspace path on stdout, so `cd "$(jj-ws)"` also works, and you can run `jj-ws sync` by hand when you need git to see the latest jj state.
 
 ## Usage
 
@@ -55,6 +57,8 @@ jj-ws pikachu        # create ../worktrees/<repo>/pikachu and cd into it
 jj-ws add pikachu    # explicit form (needed for names that match a command)
 jj-ws list           # list workspaces and their directories
 jj-ws rm pikachu     # jj workspace forget + delete the directory
+jj-ws sync           # re-point cwd's git HEAD at its current jj parent commit
+jj-ws sync pikachu   # sync a workspace by path instead of cwd
 ```
 
 `rm` also cleans up half-removed workspaces: it forgets stale entries whose directory is already gone, and deletes leftover directories jj no longer tracks.
