@@ -138,6 +138,14 @@ export async function syncWorkspace(
   await syncGitWorktree(mainRoot, dest);
 }
 
+/** Workspace names valid as `jj-ws rm` arguments; used by shell completion. */
+export async function removableWorkspaceNames(
+  cwd: string = process.cwd(),
+): Promise<string> {
+  const names = await workspaceNames(cwd);
+  return names.filter((name) => name !== "default").join("\n");
+}
+
 export async function listWorkspaces(
   cwd: string = process.cwd(),
 ): Promise<string> {
@@ -179,6 +187,9 @@ if (import.meta.main) {
         break;
       case "sync":
         await syncWorkspace(args.path);
+        break;
+      case "_names":
+        console.log(await removableWorkspaceNames());
         break;
     }
   } catch (error) {
