@@ -20,7 +20,11 @@ afterAll(async () => {
   await Promise.all(cleanups.map((fn) => fn()));
 });
 
-async function setupTempJjRepo(name = "myrepo"): Promise<{
+async function setupTempJjRepo(
+  name = "myrepo",
+  // jj colocates by default; git.colocate=false forces the internal store
+  { colocate = true } = {},
+): Promise<{
   root: string;
   repo: string;
 }> {
@@ -29,9 +33,21 @@ async function setupTempJjRepo(name = "myrepo"): Promise<{
 
   const repo = join(root, "code", name);
   await mkdir(repo, { recursive: true });
-  await $`jj git init`.env(testEnv).cwd(repo).quiet();
+  if (colocate) {
+    await $`jj git init --colocate`.env(testEnv).cwd(repo).quiet();
+  } else {
+    await $`jj --config git.colocate=false git init`
+      .env(testEnv)
+      .cwd(repo)
+      .quiet();
+  }
 
   return { root, repo };
+}
+
+async function commitFile(repo: string, name: string): Promise<void> {
+  await Bun.write(join(repo, name), `${name}\n`);
+  await $`jj commit -m ${`add ${name}`}`.env(testEnv).cwd(repo).quiet();
 }
 
 function jjWs(cwd: string, ...args: string[]) {
@@ -143,6 +159,62 @@ describe("jj-ws", () => {
     expect(added.exitCode).toBe(1);
     expect(added.stderr.toString()).toContain("invalid workspace name");
     expect(await exists(join(root, "code", "worktrees"))).toBe(false);
+  });
+
+  test("workspaces in a colocated repo are usable git worktrees", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+    await commitFile(repo, "hello.txt");
+
+    const added = await jjWs(repo, "add", "pikachu");
+    expect(added.exitCode).toBe(0);
+    const dest = added.stdout.toString().trim();
+
+    // git resolves the workspace as a linked worktree of the main repo
+    const gitDir = await $`git rev-parse --git-dir`.cwd(dest).quiet().text();
+    expect(gitDir.trim()).toBe(join(repo, ".git", "worktrees", "pikachu"));
+
+    // git log sees the repo history from inside the workspace
+    const log = await $`git log --format=%s -1`.cwd(dest).quiet().text();
+    expect(log.trim()).toBe("add hello.txt");
+
+    // the tree starts clean: index populated, .jj/ excluded
+    const status = await $`git status --porcelain`.cwd(dest).quiet().text();
+    expect(status).toBe("");
+
+    const worktrees = await $`git worktree list`.cwd(repo).quiet().text();
+    expect(worktrees).toContain(dest);
+
+    // rm prunes the git worktree metadata again
+    await jjWs(repo, "rm", "pikachu");
+    expect(await exists(join(repo, ".git", "worktrees", "pikachu"))).toBe(
+      false,
+    );
+  });
+
+  test("git works in workspaces of non-colocated repos too", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: false });
+    await commitFile(repo, "hello.txt");
+
+    const added = await jjWs(repo, "add", "pikachu");
+    expect(added.exitCode).toBe(0);
+    const dest = added.stdout.toString().trim();
+
+    const log = await $`git log --format=%s -1`.cwd(dest).quiet().text();
+    expect(log.trim()).toBe("add hello.txt");
+
+    const status = await $`git status --porcelain`.cwd(dest).quiet().text();
+    expect(status).toBe("");
+  });
+
+  test("wiring an empty repo leaves git on an unborn branch", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+
+    const added = await jjWs(repo, "add", "pikachu");
+    expect(added.exitCode).toBe(0);
+    const dest = added.stdout.toString().trim();
+
+    const status = await $`git status --porcelain`.cwd(dest).quiet().nothrow();
+    expect(status.exitCode).toBe(0);
   });
 
   test("fails outside a jj repo", async () => {

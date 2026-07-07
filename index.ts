@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { help, parseCli } from "./lib/args";
 import { completionScript } from "./lib/completion";
 import { execToStderr, shellQuote } from "./lib/exec";
+import { pruneGitWorktrees, wireGitWorktree } from "./lib/git";
 import { pickName } from "./lib/names";
 import { shellIntegration } from "./lib/shell";
 import {
@@ -66,6 +67,20 @@ export async function addWorkspace(
 
   await mkdir(worktrees, { recursive: true });
   await execToStderr(`jj workspace add ${shellQuote(dest)}`, { cwd });
+
+  // Register the workspace as a git worktree so `git log` etc. work in it.
+  // The workspace is fully usable through jj either way, so wiring problems
+  // only warn.
+  try {
+    await wireGitWorktree(mainRoot, dest);
+  } catch (error) {
+    console.error(
+      `warning: workspace created, but git worktree setup failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
   return dest;
 }
 
@@ -99,6 +114,7 @@ export async function removeWorkspace(
   if (hasDir) {
     await rm(dest, { recursive: true, force: true });
   }
+  await pruneGitWorktrees(mainRoot);
   console.error(`removed ${dest}`);
 }
 

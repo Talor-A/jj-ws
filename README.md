@@ -16,11 +16,14 @@ Given a repo at `~/code/myrepo`, `jj-ws` creates workspaces at `~/code/worktrees
 
 If you don't pass a name, it picks one for you (`pikachu`, `eevee`, ...).
 
+Each workspace is also registered as a **git worktree** of the main repo (`jj workspace add` alone doesn't do this), so `git log`, `git blame`, IDEs, and other tools that shell out to git work inside it. The workspace gets its own detached HEAD (at the workspace's parent commit) and its own index, so running git in a workspace never disturbs the main checkout. `jj-ws rm` prunes the worktree registration again.
+
 ## Install
 
 requirements:
 
 - `jj`
+- `git` (optional; used to set up git worktrees inside workspaces)
 
 ```sh
 bun i -g jj-ws
