@@ -43,6 +43,16 @@ describe("parseCli", () => {
     expect(() => parseCli(["rm"])).toThrow("usage: jj-ws rm <name>");
   });
 
+  test("parses hidden _names command", () => {
+    expect(parseCli(["_names"])).toEqual({ command: "_names" });
+  });
+
+  test("_names rejects arguments", () => {
+    expect(() => parseCli(["_names", "extra"])).toThrow(
+      "unexpected argument: extra",
+    );
+  });
+
   test("parses shell and completion", () => {
     expect(parseCli(["shell", "zsh"])).toEqual({
       command: "shell",

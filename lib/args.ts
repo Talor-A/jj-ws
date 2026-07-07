@@ -7,6 +7,7 @@ export type CliArgs =
   | { command: "rm"; name: string }
   | { command: "shell"; shell: Shell }
   | { command: "completion"; shell: Shell }
+  | { command: "_names" }
   | { command: "help" };
 
 export function help(): string {
@@ -34,7 +35,16 @@ Options:
 `;
 }
 
-const COMMANDS = new Set(["add", "list", "rm", "shell", "completion"]);
+// "_names" is a hidden command used by shell completion scripts to look up
+// workspace names for `jj-ws rm <TAB>`; it's deliberately left out of help.
+const COMMANDS = new Set([
+  "add",
+  "list",
+  "rm",
+  "shell",
+  "completion",
+  "_names",
+]);
 
 export function parseCli(argv: string[]): CliArgs {
   const { values, positionals } = nodeParseArgs({
@@ -67,6 +77,9 @@ export function parseCli(argv: string[]): CliArgs {
     case "rm":
       if (arg === undefined) throw new Error("usage: jj-ws rm <name>");
       return { command: "rm", name: arg };
+    case "_names":
+      if (arg !== undefined) throw new Error(`unexpected argument: ${arg}`);
+      return { command: "_names" };
     case "shell":
     case "completion": {
       if (arg === undefined || !isShell(arg)) {

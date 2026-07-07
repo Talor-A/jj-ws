@@ -112,6 +112,12 @@ describe("jj-ws", () => {
     expect(rmInside.exitCode).toBe(1);
     expect(rmInside.stderr.toString()).toContain("cd out of");
 
+    // _names lists workspace names for shell completion, excluding "default"
+    const names = await jjWs(repo, "_names");
+    expect(names.exitCode).toBe(0);
+    expect(names.stdout.toString()).not.toContain("default");
+    expect(names.stdout.toString()).toContain("pikachu");
+
     // rm forgets the workspace and deletes the directory
     const removed = await jjWs(repo, "rm", "pikachu");
     expect(removed.exitCode).toBe(0);
