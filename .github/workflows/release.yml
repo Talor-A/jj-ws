@@ -4,48 +4,39 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  release:
+  # Publishes when a release PR (maintained by release-pr.yml) merges.
+  # The version bump lands on main through that PR like any other
+  # change, so nothing here pushes to main and the branch ruleset
+  # stays intact. Requires squash-merging the release PR: the guard
+  # matches the squashed commit title.
+  publish:
     runs-on: ubuntu-latest
+    if: startsWith(github.event.head_commit.message, 'release: v')
+    permissions:
+      contents: write
+      id-token: write
+    concurrency:
+      group: release
+      cancel-in-progress: false
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          release-type: node
-          package-name: jj-ws
-
       - uses: actions/checkout@v4
-        if: ${{ steps.release.outputs.release_created }}
 
       - uses: oven-sh/setup-bun@v2
-        if: ${{ steps.release.outputs.release_created }}
 
-      - name: Install jj
-        if: ${{ steps.release.outputs.release_created }}
+      # No typecheck/test here: the release PR passed the required
+      # checks to merge. bun install is for prepublishOnly's build.
+      - run: bun install --frozen-lockfile
+
+      # npm, not bun: bun publish doesn't support npm trusted publishing
+      # (OIDC), see oven-sh/bun#22423. Trusted publishing needs npm >= 11.5.1,
+      # hence npx (a global upgrade hits EACCES on /usr/local).
+      - name: Publish to npm
+        run: npx -y npm@latest publish --access public --provenance
+
+      - name: Create GitHub release and tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=$(gh release view --repo jj-vcs/jj --json tagName -q .tagName)
-          mkdir -p "$HOME/.local/bin"
-          gh release download "$tag" --repo jj-vcs/jj \
-            --pattern "jj-${tag}-x86_64-unknown-linux-musl.tar.gz" \
-            --output - | tar xz -C "$HOME/.local/bin" ./jj
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - run: bun install --frozen-lockfile
-        if: ${{ steps.release.outputs.release_created }}
-
-      - run: bun run typecheck
-        if: ${{ steps.release.outputs.release_created }}
-
-      - run: bun run test
-        if: ${{ steps.release.outputs.release_created }}
-
-      - run: bun publish --access public
-        if: ${{ steps.release.outputs.release_created }}
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          version=$(jq -r .version package.json)
+          gh release create "v$version" --target "$GITHUB_SHA" --generate-notes

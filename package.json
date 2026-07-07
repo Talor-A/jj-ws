@@ -7,6 +7,10 @@
     "email": "public-github@taloranderson.com"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Talor-A/jj-ws.git"
+  },
   "type": "module",
   "bin": {
     "jj-ws": "dist/index.mjs"
