@@ -5,6 +5,22 @@ import type { Shell } from "./completion";
 // there. Every other subcommand's stdout is not a directory, so it passes
 // through untouched.
 function posixIntegration(shell: "bash" | "zsh"): string {
+  const hook =
+    shell === "zsh"
+      ? `# Keeps git HEAD in sync with the jj parent commit before each prompt,
+# so \`git diff\`/\`git log\` etc. don't drift as \`@\` moves.
+jj-ws-sync-precmd() { command jj-ws sync 2>/dev/null }
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd jj-ws-sync-precmd
+`
+      : `# Keeps git HEAD in sync with the jj parent commit before each prompt,
+# so \`git diff\`/\`git log\` etc. don't drift as \`@\` moves.
+jj-ws-sync-precmd() { command jj-ws sync 2>/dev/null; }
+case ";\${PROMPT_COMMAND:-};" in
+  *";jj-ws-sync-precmd;"*) ;;
+  *) PROMPT_COMMAND="jj-ws-sync-precmd\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}" ;;
+esac
+`;
   return `# jj-ws shell integration for ${shell}
 # install: eval "$(jj-ws shell ${shell})"
 # Wraps jj-ws in a function so creating a workspace also cds into it.
@@ -17,7 +33,8 @@ jj-ws() {
     printf '%s\\n' "$out"
   fi
 }
-`;
+
+${hook}`;
 }
 
 function fishIntegration(): string {
@@ -33,6 +50,12 @@ function jj-ws
     else if test (count $out) -gt 0
         string join \\n -- $out
     end
+end
+
+# Keeps git HEAD in sync with the jj parent commit before each prompt,
+# so \`git diff\`/\`git log\` etc. don't drift as @ moves.
+function jj-ws-sync-precmd --on-event fish_prompt
+    command jj-ws sync 2>/dev/null
 end
 `;
 }

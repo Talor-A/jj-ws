@@ -43,6 +43,14 @@ describe("parseCli", () => {
     expect(() => parseCli(["rm"])).toThrow("usage: jj-ws rm <name>");
   });
 
+  test("parses sync with and without a path", () => {
+    expect(parseCli(["sync"])).toEqual({ command: "sync", path: undefined });
+    expect(parseCli(["sync", "../pikachu"])).toEqual({
+      command: "sync",
+      path: "../pikachu",
+    });
+  });
+
   test("parses shell and completion", () => {
     expect(parseCli(["shell", "zsh"])).toEqual({
       command: "shell",
