@@ -81,6 +81,12 @@ export async function addWorkspace(
     );
   }
 
+  // New workspaces inherit an .envrc but not its allowed status, so direnv
+  // would otherwise block it. Skipped silently when direnv isn't installed.
+  if (await exists(join(dest, ".envrc"))) {
+    await execToStderr("direnv allow", { cwd: dest }).catch(() => {});
+  }
+
   return dest;
 }
 
