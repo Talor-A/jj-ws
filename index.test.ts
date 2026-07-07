@@ -51,7 +51,11 @@ async function commitFile(repo: string, name: string): Promise<void> {
 }
 
 function jjWs(cwd: string, ...args: string[]) {
-  return $`${bun} ${pathToIndexFile} ${args}`.env(testEnv).cwd(cwd).quiet().nothrow();
+  return $`${bun} ${pathToIndexFile} ${args}`
+    .env(testEnv)
+    .cwd(cwd)
+    .quiet()
+    .nothrow();
 }
 
 async function workspaceList(cwd: string): Promise<string> {
