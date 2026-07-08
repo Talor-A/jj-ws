@@ -40,25 +40,37 @@ async function excludeJjDir(gitDir: string): Promise<void> {
   await appendFile(excludeFile, `${separator}.jj/\n`);
 }
 
+async function parentCommitId(dest: string): Promise<string> {
+  return exec(`jj log -r @- --no-graph -T 'commit_id ++ "\\n"'`, {
+    cwd: dest,
+  })
+    .then(mapToStdout)
+    .then((s) => s.split("\n")[0]!.trim());
+}
+
+function headContents(parent: string): string {
+  // In a repo with no commits yet, @- is jj's virtual root commit (all
+  // zeros), which isn't a real git object; use an unborn branch instead.
+  return /^0+$/.test(parent) ? "ref: refs/heads/main" : parent;
+}
+
 /**
  * Point a workspace's git worktree HEAD at its current jj parent commit
  * (`@-`). `jj-ws add` sets this up once at creation time, but jj moves `@`
  * (and therefore `@-`) as you work, so it drifts from the frozen HEAD left
  * on disk; `jj-ws sync` calls this again later to catch it up.
+ *
+ * Returns whether the HEAD value changed.
  */
-async function syncHead(worktreeDir: string, dest: string): Promise<void> {
-  const parent = await exec(
-    `jj log -r @- --no-graph -T 'commit_id ++ "\\n"'`,
-    { cwd: dest },
-  )
-    .then(mapToStdout)
-    .then((s) => s.split("\n")[0]!.trim());
-
-  // In a repo with no commits yet, @- is jj's virtual root commit (all
-  // zeros), which isn't a real git object; use an unborn branch instead.
-  const head = /^0+$/.test(parent) ? "ref: refs/heads/main" : parent;
-
-  await writeFile(join(worktreeDir, "HEAD"), `${head}\n`);
+async function syncHead(worktreeDir: string, dest: string): Promise<boolean> {
+  const head = headContents(await parentCommitId(dest));
+  const headPath = join(worktreeDir, "HEAD");
+  const previous = await readFile(headPath, "utf8").catch(() => "");
+  const changed = previous.trim() !== head;
+  if (changed) {
+    await writeFile(headPath, `${head}\n`);
+  }
+  return changed;
 }
 
 /**
@@ -98,7 +110,9 @@ export async function wireGitWorktree(
 /**
  * Re-point an already-wired workspace's git HEAD at its current jj parent
  * commit. Unlike {@link wireGitWorktree}, this is meant to be called
- * repeatedly (e.g. from a shell precmd hook), so it leaves the index alone.
+ * repeatedly (e.g. from a shell precmd hook). When HEAD moves, the index is
+ * refreshed so `git diff` stays aligned with jj; when HEAD is unchanged, the
+ * index is left alone to keep the hot path cheap.
  *
  * Returns false when there's nothing to sync (the workspace isn't wired as
  * a git worktree, or the repo has no git backing).
@@ -116,7 +130,10 @@ export async function syncGitWorktree(
   const gitDir = await findGitDir(mainRoot);
   if (!gitDir) return false;
 
-  await syncHead(match[1]!, dest);
+  const headChanged = await syncHead(match[1]!, dest);
+  if (headChanged) {
+    await exec("git reset -q", { cwd: dest }).catch(() => {});
+  }
   return true;
 }
 
