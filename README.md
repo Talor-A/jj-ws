@@ -20,7 +20,9 @@ Each workspace is also registered as a **git worktree** of the main repo (`jj wo
 
 jj moves a workspace's `@` (and so its parent commit, `@-`) as you work — rebasing, `jj new`, squashing — but git's HEAD file is just a pointer written to disk once; it doesn't follow along. Run `jj-ws sync` in a workspace to re-point its git HEAD at the current `@-`, so `git diff`, `git log`, and friends stop reporting stale results. The shell integration (below) runs this automatically before every prompt, so you normally don't need to call it yourself.
 
-If the new workspace has an `.envrc`, `jj-ws` runs `direnv allow` in it, since direnv treats each directory's allow-list separately and would otherwise block the copy it just checked out.
+If the main repo has a [`.worktreeinclude`](https://github.com/satococoa/git-worktreeinclude) file, `jj-ws` runs `git worktreeinclude apply` in "the new workspace.
+
+Then, if the new workspace has an `.envrc`, `jj-ws` runs `direnv allow` in it, since direnv treats each directory's allow-list separately and would otherwise block the copy it just checked out.
 
 ## Install
 
@@ -29,6 +31,7 @@ requirements:
 - `jj`
 - `git` (optional; used to set up git worktrees inside workspaces)
 - `direnv` (optional; used to allow an `.envrc` in new workspaces)
+- [`git-worktreeinclude`](https://github.com/satococoa/git-worktreeinclude) (optional; used to copy gitignored files listed in `.worktreeinclude` into new workspaces)
 
 ```sh
 bun i -g jj-ws

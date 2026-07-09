@@ -85,6 +85,12 @@ export async function addWorkspace(
     );
   }
 
+  // Copy gitignored files listed in .worktreeinclude  from the primary worktree into the new one. Skipped silently when
+  // git-worktreeinclude isn't installed.
+  await execToStderr("git worktreeinclude apply", { cwd: dest }).catch(
+    () => {},
+  );
+
   // New workspaces inherit an .envrc but not its allowed status, so direnv
   // would otherwise block it. Skipped silently when direnv isn't installed.
   if (await exists(join(dest, ".envrc"))) {
@@ -197,7 +203,9 @@ if (import.meta.main) {
         break;
     }
   } catch (error) {
-    console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `error: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exit(1);
   }
 }
