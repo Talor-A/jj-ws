@@ -23,6 +23,7 @@ Commands:
   completion <shell>    Print shell completion script (bash, zsh, fish)
 
 Options:
+  -r, --revision <rev>  Parent revision(s) for the new workspace (add only)
   -h, --help            Show this help message
 "
 `;

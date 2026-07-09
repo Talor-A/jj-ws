@@ -136,6 +136,36 @@ describe("jj-ws", () => {
     );
   });
 
+  test("add -r/--revision sets the new workspace's parent", async () => {
+    const { repo } = await setupTempJjRepo("myrepo", { colocate: true });
+    await commitFile(repo, "hello.txt");
+    const revset = "root()";
+    const root = await $`jj log -r ${revset} -T commit_id --no-graph`
+      .env(testEnv)
+      .cwd(repo)
+      .quiet()
+      .text();
+
+    const added = await jjWs(repo, "add", "pikachu", "-r", root.trim());
+    expect(added.exitCode).toBe(0);
+    const dest = added.stdout.toString().trim();
+
+    // parented on the root commit, so hello.txt shouldn't be there
+    expect(await exists(join(dest, "hello.txt"))).toBe(false);
+
+    const addedLong = await jjWs(
+      repo,
+      "add",
+      "raichu",
+      "--revision",
+      root.trim(),
+    );
+    expect(addedLong.exitCode).toBe(0);
+    expect(await exists(join(addedLong.stdout.toString().trim(), "hello.txt"))).toBe(
+      false,
+    );
+  });
+
   test("rm cleans up a workspace jj no longer tracks", async () => {
     const { root, repo } = await setupTempJjRepo();
     const worktrees = join(root, "code", "worktrees", "myrepo");

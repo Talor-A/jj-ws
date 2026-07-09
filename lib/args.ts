@@ -2,7 +2,7 @@ import { parseArgs as nodeParseArgs } from "node:util";
 import { isShell, SHELLS, type Shell } from "./completion";
 
 export type CliArgs =
-  | { command: "add"; name: string | undefined }
+  | { command: "add"; name: string | undefined; revision: string | undefined }
   | { command: "list" }
   | { command: "rm"; name: string }
   | { command: "sync"; path: string | undefined }
@@ -34,6 +34,7 @@ Commands:
   completion <shell>    Print shell completion script (${SHELLS.join(", ")})
 
 Options:
+  -r, --revision <rev>  Parent revision(s) for the new workspace (add only)
   -h, --help            Show this help message
 `;
 }
@@ -55,6 +56,7 @@ export function parseCli(argv: string[]): CliArgs {
     args: argv,
     options: {
       help: { type: "boolean", short: "h" },
+      revision: { type: "string", short: "r" },
     },
     allowPositionals: true,
   });
@@ -71,10 +73,13 @@ export function parseCli(argv: string[]): CliArgs {
   if (extra !== undefined) {
     throw new Error(`unexpected argument: ${extra}`);
   }
+  if (values.revision !== undefined && command !== "add") {
+    throw new Error("-r, --revision is only valid with add");
+  }
 
   switch (command) {
     case "add":
-      return { command: "add", name: arg };
+      return { command: "add", name: arg, revision: values.revision };
     case "list":
       if (arg !== undefined) throw new Error(`unexpected argument: ${arg}`);
       return { command: "list" };

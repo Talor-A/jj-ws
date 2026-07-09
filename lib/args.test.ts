@@ -3,23 +3,67 @@ import { help, parseCli } from "./args";
 
 describe("parseCli", () => {
   test("defaults to add with a generated name", () => {
-    expect(parseCli([])).toEqual({ command: "add", name: undefined });
+    expect(parseCli([])).toEqual({
+      command: "add",
+      name: undefined,
+      revision: undefined,
+    });
   });
 
   test("treats a bare positional as an add name", () => {
-    expect(parseCli(["pikachu"])).toEqual({ command: "add", name: "pikachu" });
+    expect(parseCli(["pikachu"])).toEqual({
+      command: "add",
+      name: "pikachu",
+      revision: undefined,
+    });
   });
 
   test("accepts explicit add", () => {
     expect(parseCli(["add", "pikachu"])).toEqual({
       command: "add",
       name: "pikachu",
+      revision: undefined,
     });
-    expect(parseCli(["add"])).toEqual({ command: "add", name: undefined });
+    expect(parseCli(["add"])).toEqual({
+      command: "add",
+      name: undefined,
+      revision: undefined,
+    });
   });
 
   test("explicit add allows names that collide with commands", () => {
-    expect(parseCli(["add", "list"])).toEqual({ command: "add", name: "list" });
+    expect(parseCli(["add", "list"])).toEqual({
+      command: "add",
+      name: "list",
+      revision: undefined,
+    });
+  });
+
+  test("accepts -r and --revision for add", () => {
+    expect(parseCli(["add", "pikachu", "-r", "main"])).toEqual({
+      command: "add",
+      name: "pikachu",
+      revision: "main",
+    });
+    expect(parseCli(["-r", "main", "pikachu"])).toEqual({
+      command: "add",
+      name: "pikachu",
+      revision: "main",
+    });
+    expect(parseCli(["--revision", "main"])).toEqual({
+      command: "add",
+      name: undefined,
+      revision: "main",
+    });
+  });
+
+  test("rejects -r/--revision on non-add commands", () => {
+    expect(() => parseCli(["list", "-r", "main"])).toThrow(
+      "-r, --revision is only valid with add",
+    );
+    expect(() => parseCli(["rm", "pikachu", "-r", "main"])).toThrow(
+      "-r, --revision is only valid with add",
+    );
   });
 
   test("parses list", () => {

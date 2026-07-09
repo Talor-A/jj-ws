@@ -41,6 +41,7 @@ async function readdirOrEmpty(path: string): Promise<string[]> {
 export async function addWorkspace(
   name: string | undefined,
   cwd: string = process.cwd(),
+  revision: string | undefined = undefined,
 ): Promise<string> {
   const mainRoot = await mainRepoRoot(cwd);
   const worktrees = await worktreesDirFor(mainRoot);
@@ -66,7 +67,10 @@ export async function addWorkspace(
   }
 
   await mkdir(worktrees, { recursive: true });
-  await execToStderr(`jj workspace add ${shellQuote(dest)}`, { cwd });
+  const revisionFlag = revision === undefined ? "" : ` -r ${shellQuote(revision)}`;
+  await execToStderr(`jj workspace add ${shellQuote(dest)}${revisionFlag}`, {
+    cwd,
+  });
 
   // Register the workspace as a git worktree so `git log` etc. work in it.
   // The workspace is fully usable through jj either way, so wiring problems
@@ -177,7 +181,7 @@ if (import.meta.main) {
         console.log(shellIntegration(args.shell));
         break;
       case "add":
-        console.log(await addWorkspace(args.name));
+        console.log(await addWorkspace(args.name, undefined, args.revision));
         break;
       case "list":
         console.log(await listWorkspaces());

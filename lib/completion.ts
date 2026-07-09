@@ -16,8 +16,10 @@ _jj_ws() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
   if [ "\${COMP_CWORD}" -eq 1 ]; then
     COMPREPLY=( $(compgen -W "${words}" -- "\${cur}") )
-  elif [ "\${COMP_CWORD}" -eq 2 ] && [ "\${COMP_WORDS[1]}" = "rm" ]; then
+  elif [ "\${COMP_WORDS[1]}" = "rm" ] && [ "\${COMP_CWORD}" -eq 2 ]; then
     COMPREPLY=( $(compgen -W "$(jj-ws _names 2>/dev/null)" -- "\${cur}") )
+  elif [ "\${COMP_WORDS[1]}" = "add" ] && [ "\${cur}" = "-" ]; then
+    COMPREPLY=( $(compgen -W "-r --revision" -- "\${cur}") )
   fi
   return 0
 }
@@ -34,12 +36,19 @@ _jj-ws() {
   _arguments \\
     '(-h --help)'{-h,--help}'[Show help message]' \\
     '1:command:(${COMMANDS.join(" ")})' \\
-    '2:argument:->argument'
+    '2:argument:->argument' \\
+    '*::options:->options'
 
   case "\${words[2]}" in
     rm)
       names=("\${(f)$(jj-ws _names 2>/dev/null)}")
       _describe 'workspace' names
+      ;;
+  esac
+
+  case "\${words[1]}" in
+    add)
+      _arguments '(-r --revision)'{-r,--revision}'[Parent revision for the new workspace]:revset:'
       ;;
   esac
 }
@@ -57,6 +66,7 @@ complete -c jj-ws -n __fish_use_subcommand -a sync -d 'Sync git HEAD with the jj
 complete -c jj-ws -n __fish_use_subcommand -a shell -d 'Print shell integration'
 complete -c jj-ws -n __fish_use_subcommand -a completion -d 'Print completion script'
 complete -c jj-ws -n '__fish_seen_subcommand_from rm' -a '(jj-ws _names 2>/dev/null)'
+complete -c jj-ws -n '__fish_seen_subcommand_from add' -s r -l revision -d 'Parent revision for the new workspace' -r
 complete -c jj-ws -s h -l help -d 'Show help message'
 `;
 }
