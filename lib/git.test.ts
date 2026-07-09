@@ -135,4 +135,23 @@ describe("syncGitWorktree", () => {
     const diffHead = await $`git diff HEAD`.cwd(dest).quiet().text();
     expect(diffHead).toBe("");
   });
+
+  test("exports jj bookmark updates to git refs", async () => {
+    const { repo } = await setupColocatedRepo();
+    await commitFile(repo, "hello.txt");
+
+    const dest = await addWiredWorkspace(repo, "ws");
+    await $`jj bookmark create feature -r @-`.env(testEnv).cwd(dest).quiet();
+
+    const staleRef = await $`git show-ref --heads feature`
+      .cwd(dest)
+      .quiet()
+      .nothrow();
+    expect(staleRef.exitCode).not.toBe(0);
+
+    expect(await syncGitWorktree(repo, dest)).toBe(true);
+
+    const freshRef = await $`git show-ref --heads feature`.cwd(dest).quiet().text();
+    expect(freshRef).toContain("refs/heads/feature");
+  });
 });

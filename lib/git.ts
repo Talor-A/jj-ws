@@ -48,6 +48,10 @@ async function parentCommitId(dest: string): Promise<string> {
     .then((s) => s.split("\n")[0]!.trim());
 }
 
+async function exportGitRefs(dest: string): Promise<void> {
+  await exec("jj git export --ignore-working-copy --quiet", { cwd: dest });
+}
+
 function headContents(parent: string): string {
   // In a repo with no commits yet, @- is jj's virtual root commit (all
   // zeros), which isn't a real git object; use an unborn branch instead.
@@ -130,6 +134,7 @@ export async function syncGitWorktree(
   const gitDir = await findGitDir(mainRoot);
   if (!gitDir) return false;
 
+  await exportGitRefs(dest);
   const headChanged = await syncHead(match[1]!, dest);
   if (headChanged) {
     await exec("git reset -q", { cwd: dest }).catch(() => {});
