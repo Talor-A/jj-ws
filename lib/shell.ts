@@ -9,16 +9,16 @@ function posixIntegration(shell: "bash" | "zsh"): string {
     shell === "zsh"
       ? `# Keeps git HEAD in sync with the jj parent commit before each prompt,
 # so \`git diff\`/\`git log\` etc. don't drift as \`@\` moves.
-jj-ws-sync-precmd() { command jj-ws sync 2>/dev/null }
+_jj_ws_sync_precmd() { command jj-ws sync 2>/dev/null }
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd jj-ws-sync-precmd
+add-zsh-hook precmd _jj_ws_sync_precmd
 `
       : `# Keeps git HEAD in sync with the jj parent commit before each prompt,
 # so \`git diff\`/\`git log\` etc. don't drift as \`@\` moves.
-jj-ws-sync-precmd() { command jj-ws sync 2>/dev/null; }
+_jj_ws_sync_precmd() { command jj-ws sync 2>/dev/null; }
 case ";\${PROMPT_COMMAND:-};" in
-  *";jj-ws-sync-precmd;"*) ;;
-  *) PROMPT_COMMAND="jj-ws-sync-precmd\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}" ;;
+  *";_jj_ws_sync_precmd;"*) ;;
+  *) PROMPT_COMMAND="_jj_ws_sync_precmd\${PROMPT_COMMAND:+;\$PROMPT_COMMAND}" ;;
 esac
 `;
   return `# jj-ws shell integration for ${shell}
@@ -54,7 +54,7 @@ end
 
 # Keeps git HEAD in sync with the jj parent commit before each prompt,
 # so \`git diff\`/\`git log\` etc. don't drift as @ moves.
-function jj-ws-sync-precmd --on-event fish_prompt
+function _jj_ws_sync_precmd --on-event fish_prompt
     command jj-ws sync 2>/dev/null
 end
 `;
